@@ -1,0 +1,29 @@
+# training/multimodal/config_no_mammo_leak.yaml
+#
+# Variant of config.yaml using a pairing CSV built to avoid patient-level
+# leakage between the mammography and ultrasound pairs ("No-Mammo-Leak"
+# clean baseline, see 단계별 모델 개선.txt / 초록 번역본.txt).
+#
+# NOTE (public repo): all paths below are REPO-ROOT-RELATIVE.
+# The original team config pointed to a personal machine path
+# (C:/Users/<username>/Desktop/MMIBC-main/...); that has been removed here.
+
+run_name: MMIBC_Fusion_v1
+data:
+  csv_path: data/multimodal_pairs_no_mammo_leak.csv
+models:
+  unimodal_config_path: src/training/dinov2/unimodal_model/config.yaml
+  us_model_path: saved_models/best_model_final.pth
+  mammo_model_path: saved_models/best_mammo_model_final.pth
+training:
+  image_size: 224
+  batch_size: 8
+  epochs: 50
+  learning_rate: 0.001
+  early_stopping:
+    patience: 25
+    mode: min
+    min_delta: 0.0001
+output:
+  model_save_path: saved_models
+  tensorboard_log_dir: outputs/runs

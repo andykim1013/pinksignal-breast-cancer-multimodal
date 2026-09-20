@@ -1,0 +1,32 @@
+# training/multimodal/config.yaml
+#
+# NOTE (public repo): all paths below are REPO-ROOT-RELATIVE.
+# Run from the repository root, e.g.:
+#   python src/training/dinov2/multimodal_model/multimodal_train.py --config src/training/dinov2/multimodal_model/config.yaml
+#
+# The original team config pointed to a personal machine path
+# (C:/Users/<username>/Desktop/MMIBC-main/...); that has been removed here.
+
+run_name: "MMIBC_Fusion_v1"
+
+data:
+  csv_path: "data/multimodal_pairs.csv"
+
+models:
+  unimodal_config_path: "src/training/dinov2/unimodal_model/config.yaml"
+  us_model_path: "saved_models/best_model_final.pth"
+  mammo_model_path: "saved_models/best_mammo_model_final.pth"
+
+training:
+  image_size: 224
+  batch_size: 8
+  epochs: 50
+  learning_rate: 0.001
+  early_stopping:
+    patience: 25
+    mode: "min"
+    min_delta: 0.0001
+
+output:
+  model_save_path: "saved_models"
+  tensorboard_log_dir: "outputs/runs"

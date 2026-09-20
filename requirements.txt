@@ -1,0 +1,33 @@
+# Consolidated dependencies for this repository.
+#
+# Sources actually checked (no versions were invented):
+#   - fastapi / uvicorn / torch / torchvision / pillow / numpy / python-multipart / pydantic
+#     versions are copied as-is from the team's own `kk/requirements.txt`
+#     (found inside 모델구현 파일/kk.zip).
+#   - All other packages below were found via `import`/`from` statements in the
+#     copied training/evaluation/XAI code, but no requirements/environment file
+#     in the original project pins their versions, so they are listed WITHOUT a
+#     version pin. Please verify a working version set yourself before relying
+#     on this file (Python / CUDA version were also not confirmed anywhere in
+#     the original project — see README "확인 필요" note).
+
+# --- Web demo (FastAPI backend, app/main.py) ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+torch>=2.1.0
+torchvision>=0.16.0
+pillow>=10.0.0
+numpy>=1.24.0
+python-multipart>=0.0.9
+pydantic>=2.0.0
+
+# --- Training / evaluation / XAI code (src/training/dinov2/**) ---
+pandas
+scikit-learn
+opencv-python
+matplotlib
+seaborn
+tqdm
+PyYAML
+tensorboard
+grad-cam

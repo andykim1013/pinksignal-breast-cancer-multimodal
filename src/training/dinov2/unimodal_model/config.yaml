@@ -1,0 +1,55 @@
+# training/unimodal/config.yaml
+#
+# Configuration for unimodal training runs.
+#
+# NOTE (public repo): all paths below are REPO-ROOT-RELATIVE.
+# Run training scripts from the repository root, e.g.:
+#   python src/training/dinov2/unimodal_model/mammo_train.py --config src/training/dinov2/unimodal_model/config.yaml
+#
+# Place your prepared dataset under `data/` and trained weights will be
+# written under `saved_models/` (see README.md "데이터 준비 방법" / "모델 weight 준비 방법").
+# The original team config pointed to a personal machine path
+# (C:/Users/<username>/Desktop/MMIBC-main/...); that has been removed here.
+
+run_name: "Unimodal_DINOv2s_Finetune"
+
+ultrasound_path: "data/ultrasound/images"
+mammo_data_path: "data/mammo"
+mammo_csv_path: "data/mammo/vindr_mammo_metadata.csv"
+
+model:
+  name: "dinov2_vitl14"
+  n_classes: 2
+  freeze_backbone: true
+
+training:
+  image_size: 224
+  batch_size: 32
+  epochs: 50
+  learning_rate: 0.001
+  weight_decay: 0.05
+  dropout_rate: 0.3
+  num_workers: 0
+  output_dir: "outputs/mammo_experiment_1"
+  patience: 15
+  min_delta: 0.0005
+  focal_loss:
+    gamma: 2.0
+    alpha: 0.25
+  early_stopping:
+    monitor: "val_loss"
+    mode: "min"
+    patience: 25
+    min_delta: 0.0001
+  progressive_finetuning:
+    enabled: true
+    epochs_stage1: 30
+    lr_stage1: 0.001
+    unfreeze_layers_stage2: 2
+    lr_backbone_stage2: 0.000005
+    lr_head_stage2: 0.0001
+
+output:
+  model_save_path: "saved_models"
+  tensorboard_log_dir: "outputs/runs"
+  tuning_results_csv: "hyperparameter_tuning_results.csv"

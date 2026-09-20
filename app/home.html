@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MASTO-NET</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --pink-50:#fdf2f8;
+  --pink-100:#fce7f3;
+  --pink-200:#fbcfe8;
+  --pink-300:#f9a8d4;
+  --pink-400:#f472b6;
+  --pink-500:#ec4899;
+  --pink-600:#db2777;
+  --pink-700:#be185d;
+  --pink-800:#9d174d;
+  --pink-900:#831843;
+  --red-500:#ef4444;
+  --red-600:#dc2626;
+  --emerald-500:#10b981;
+  --emerald-600:#059669;
+  --amber-500:#f59e0b;
+  --white:#ffffff;
+  --font-sans:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono:'SF Mono','Fira Code','Consolas',monospace;
+}
+
+html,body{height:100%}
+body{
+  font-family:var(--font-sans);
+  background:var(--white);
+  color:var(--pink-900);
+  overflow:hidden;
+  font-size:14px;
+}
+
+.app{display:flex;height:100vh;position:relative;overflow:hidden}
+
+/* Background blobs */
+.bg-blob{position:fixed;pointer-events:none;z-index:0;border-radius:50%;filter:blur(120px)}
+.bg-blob.top{top:-10%;right:-10%;width:500px;height:500px;background:var(--pink-100)}
+.bg-blob.bottom{bottom:-10%;left:-10%;width:600px;height:600px;background:var(--pink-50)}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:240px;background:var(--pink-50);border-right:1px solid var(--pink-200);
+  display:flex;flex-direction:column;z-index:10;flex-shrink:0;
+}
+.sidebar-brand{padding:20px;display:flex;align-items:center;gap:10px}
+.brand-icon{
+  width:40px;height:40px;background:var(--pink-600);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  box-shadow:0 8px 20px rgba(236,72,153,.3);font-size:20px;flex-shrink:0;
+}
+.brand-text{font-weight:700;font-size:18px;letter-spacing:-0.02em;color:var(--pink-700);font-style:italic}
+.brand-sub{font-weight:300;opacity:.5;font-style:normal;font-size:11px}
+
+.sidebar-info{padding:24px 20px;display:flex;flex-direction:column;gap:8px}
+.sidebar-info-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--pink-400)}
+.sidebar-info-text{font-size:13px;font-weight:600;color:var(--pink-700);line-height:1.7}
+.sidebar-info-divider{height:1px;background:var(--pink-200);margin:14px 0}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow-y:auto;z-index:10;position:relative}
+
+.header{
+  height:64px;border-bottom:1px solid var(--pink-200);background:var(--white);
+  display:flex;align-items:center;justify-content:space-between;padding:0 32px;
+  position:sticky;top:0;z-index:20;box-shadow:0 1px 2px rgba(0,0,0,.03);flex-shrink:0;
+}
+.header-title{display:flex;align-items:center;gap:14px}
+.header-title h1{font-size:19px;font-weight:700;letter-spacing:-0.01em;color:var(--pink-800)}
+.status-chip{
+  display:flex;align-items:center;gap:6px;padding:4px 10px;
+  background:var(--pink-50);color:var(--pink-600);font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.12em;border-radius:99px;border:1px solid var(--pink-200);
+}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--pink-500);animation:pulseDot 1.6s ease-in-out infinite}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.4}}
+.header-meta{display:flex;gap:24px;font-size:11px;font-family:var(--font-mono);color:var(--pink-300);text-transform:uppercase;letter-spacing:.12em}
+
+.content{padding:32px;max-width:1500px;margin:0 auto;width:100%}
+
+/* ── STEP CONTAINER (animation) ── */
+.step{animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.step.fade-only{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.step.scaleIn{animation:scaleIn .35s ease}
+@keyframes scaleIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+
+/* ── UPLOAD SECTION ── */
+.intake-card{
+  background:var(--white);padding:32px;border-radius:18px;border:1px solid var(--pink-200);
+  box-shadow:0 10px 40px rgba(236,72,153,.08);margin-bottom:24px;position:relative;z-index:1;
+}
+.intake-hd{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.intake-icon{
+  width:32px;height:32px;background:var(--pink-500);color:#fff;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 4px 10px rgba(236,72,153,.25);
+}
+.intake-hd h2{font-size:18px;font-weight:700;letter-spacing:-0.01em;color:var(--pink-800)}
+
+.upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media (max-width:880px){.upload-grid{grid-template-columns:1fr}}
+
+.upload-card{
+  position:relative;border:2px dashed var(--pink-200);border-radius:16px;
+  padding:24px;min-height:200px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:pointer;
+  transition:all .15s;overflow:hidden;text-align:center;
+}
+.upload-card:hover{border-color:var(--pink-400);background:var(--pink-50)}
+.upload-card.has-file{border-color:var(--pink-400);background:var(--pink-50)}
+.upload-card input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:5}
+
+.upload-icon-wrap{
+  width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+  background:var(--pink-50);color:var(--pink-300);border:1px solid var(--pink-200);
+  margin-bottom:14px;font-size:24px;transition:all .15s;
+}
+.upload-card:hover .upload-icon-wrap{color:var(--pink-500);background:var(--pink-100)}
+.upload-title{font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.18em;color:var(--pink-700)}
+.upload-desc{color:var(--pink-400);font-size:12px;margin-top:8px;font-family:var(--font-mono)}
+
+.upload-preview{position:absolute;inset:0}
+.upload-preview img{width:100%;height:100%;object-fit:cover;filter:none}
+.upload-preview-overlay{
+  position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:row;align-items:center;gap:10px;
+  padding:12px 14px;
+  background:linear-gradient(0deg,rgba(20,8,16,.78),rgba(20,8,16,0));
+}
+.preview-check{
+  width:32px;height:32px;background:var(--pink-500);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(236,72,153,.4);
+}
+.preview-check svg{width:16px;height:16px}
+.preview-name{font-size:11px;font-weight:700;color:#fff;letter-spacing:.06em;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+
+.intake-actions{margin-top:28px;display:flex;justify-content:flex-end}
+.btn-run{
+  display:flex;align-items:center;gap:8px;padding:13px 36px;border-radius:99px;
+  font-weight:700;text-transform:uppercase;letter-spacing:.18em;font-size:12px;
+  border:none;cursor:pointer;transition:all .15s;
+  background:var(--pink-600);color:#fff;box-shadow:0 8px 20px rgba(236,72,153,.25);
+}
+.btn-run:hover:not(:disabled){background:var(--pink-500);transform:scale(1.02)}
+.btn-run:active:not(:disabled){transform:scale(.97)}
+.btn-run:disabled{background:var(--pink-100);color:var(--pink-300);cursor:not-allowed;border:1px solid var(--pink-200);box-shadow:none}
+
+/* Feature info row */
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media (max-width:880px){.feature-grid{grid-template-columns:1fr}}
+.feature-card{
+  display:flex;gap:12px;background:var(--white);padding:18px;border-radius:16px;
+  border:1px solid var(--pink-200);box-shadow:0 1px 4px rgba(0,0,0,.02);
+  transition:all .15s;
+}
+.feature-card:hover{background:var(--pink-50)}
+.feature-icon{color:var(--pink-500);flex-shrink:0;font-size:18px;margin-top:2px}
+.feature-title{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:var(--pink-700)}
+.feature-text{font-size:12px;color:var(--pink-400);margin-top:4px;line-height:1.6}
+
+/* ── ANALYZING ── */
+.analyzing-wrap{
+  height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;
+}
+.progress-ring-wrap{position:relative;width:220px;height:220px}
+.progress-ring{transform:rotate(-90deg)}
+.progress-ring circle{fill:transparent}
+.progress-bg{stroke:var(--pink-100);stroke-width:2}
+.progress-fg{stroke:var(--pink-500);stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset .15s linear}
+.progress-label{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:48px;font-weight:300;color:var(--pink-700);
+}
+.progress-label sup{font-size:20px;color:var(--pink-300)}
+.analyzing-text{text-align:center}
+.analyzing-text h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--pink-600)}
+.analyzing-text p{color:var(--pink-400);margin-top:8px;font-size:13px;max-width:300px;margin-left:auto;margin-right:auto}
+
+/* ── RESULT ── */
+.result-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.btn-back{
+  display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--pink-400);
+  transition:color .15s;
+}
+.btn-back:hover{color:var(--pink-700)}
+
+.result-card{background:var(--white);border-radius:18px;border:1px solid var(--pink-200);box-shadow:0 10px 40px rgba(236,72,153,.08);overflow:hidden}
+
+.result-banner{
+  padding:28px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--pink-100);
+  flex-wrap:wrap;gap:16px;
+}
+.result-banner.malignant{background:#fef2f2}
+.result-banner.benign{background:#ecfdf5}
+.banner-left{display:flex;align-items:center;gap:20px}
+.banner-icon{
+  width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:28px;box-shadow:0 8px 20px rgba(0,0,0,.1);flex-shrink:0;
+}
+.banner-icon.malignant{background:var(--red-500)}
+.banner-icon.benign{background:var(--emerald-500)}
+.banner-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--pink-400);margin-bottom:4px}
+.banner-title{font-size:30px;font-weight:300;letter-spacing:-0.01em}
+.banner-title.malignant{color:var(--red-500)}
+.banner-title.benign{color:var(--emerald-600)}
+.banner-right{text-align:right}
+.banner-conf{font-size:30px;font-weight:300;color:var(--pink-800)}
+.banner-conf sup{font-size:14px;color:var(--pink-300);font-weight:400}
+
+.result-grid{display:grid;grid-template-columns:3fr 1.1fr;min-width:0}
+@media (max-width:1000px){.result-grid{grid-template-columns:1fr}}
+
+.result-detail{padding:28px 32px;border-right:1px solid var(--pink-100);min-width:0;overflow:hidden}
+@media (max-width:1000px){.result-detail{border-right:none;border-bottom:1px solid var(--pink-100)}}
+.detail-hd{
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  display:flex;align-items:center;gap:8px;color:var(--pink-600);
+}
+.detail-hd-row{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;
+}
+.view-toggle{display:flex;gap:6px;background:var(--pink-50);padding:4px;border-radius:99px;border:1px solid var(--pink-200)}
+.view-btn{
+  border:none;background:none;padding:6px 14px;border-radius:99px;cursor:pointer;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--pink-400);
+  transition:all .15s;
+}
+.view-btn:hover{color:var(--pink-600)}
+.view-btn.active{background:var(--pink-600);color:#fff;box-shadow:0 4px 10px rgba(236,72,153,.3)}
+
+.modality-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;min-width:0}
+
+.modality-block{display:flex;flex-direction:column;gap:14px;min-width:0;padding:16px;background:var(--pink-50);border-radius:16px;border:1px solid var(--pink-100)}
+.mod-badge{
+  display:flex;align-items:center;justify-content:space-between;padding:9px 12px;
+  border-radius:12px;background:var(--white);border:1px solid var(--pink-200);
+}
+.mod-badge-left{display:flex;align-items:center;gap:8px}
+.mod-badge-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--pink-600)}
+.mod-status-dot{width:8px;height:8px;border-radius:50%}
+.mod-status-dot.detected{background:var(--red-500);animation:pulseDot 1.5s ease-in-out infinite}
+.mod-status-dot.clear{background:var(--emerald-500)}
+.mod-status-text{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em}
+.mod-status-text.detected{color:var(--red-500)}
+.mod-status-text.clear{color:var(--emerald-600)}
+
+/* 단일 큰 이미지 + 히트맵 오버레이 (PACS 스타일) */
+.img-box-single{
+  position:relative;background:#0d0d10;border-radius:12px;overflow:hidden;
+  border:1px solid var(--pink-200);aspect-ratio:1;min-height:280px;
+}
+.img-box-single img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+  filter:brightness(.98) contrast(1.06);
+}
+.img-box-single canvas{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+  opacity:0;transition:opacity .35s;pointer-events:none;
+}
+.img-box-single.show-heatmap canvas,
+.img-box-single.show-overlay canvas{opacity:1}
+
+/* Side panel */
+.result-side{padding:28px 24px;background:rgba(253,242,248,.5);display:flex;flex-direction:column;gap:28px}
+.side-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--pink-600);text-align:center;margin-bottom:18px}
+
+/* Risk gauge bars (replacing recharts) */
+.gauge-chart{display:flex;align-items:flex-end;justify-content:center;gap:28px;height:160px;padding:0 10px}
+.gauge-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;height:100%;justify-content:flex-end}
+.gauge-bar{
+  width:40px;border-radius:8px 8px 0 0;transition:height .6s cubic-bezier(.34,1.56,.64,1);
+  min-height:4px;
+}
+.gauge-bar.malignant{background:linear-gradient(180deg,#ef4444,#b91c1c)}
+.gauge-bar.benign{background:linear-gradient(180deg,#ec4899,#be185d)}
+.gauge-val{font-size:11px;font-weight:700;color:var(--pink-700);font-family:var(--font-mono)}
+.gauge-name{font-size:10px;color:var(--pink-400);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+
+/* BI-RADS pill */
+.birads-pill{
+  display:flex;align-items:center;gap:14px;background:var(--white);padding:16px;
+  border-radius:14px;border:1px solid var(--pink-200);box-shadow:0 1px 4px rgba(0,0,0,.02);
+}
+.birads-circle{
+  width:56px;height:56px;border-radius:50%;border:2.5px solid var(--pink-400);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--pink-50);flex-shrink:0;font-family:var(--font-mono);
+}
+.birads-circle .num{font-size:22px;font-weight:700;color:var(--pink-600);line-height:1}
+.birads-circle .sub{font-size:8px;color:var(--pink-300);letter-spacing:.1em;margin-top:1px}
+.birads-info .lbl{font-size:13px;font-weight:700;color:var(--pink-800)}
+.birads-info .desc{font-size:11px;color:var(--pink-400);margin-top:2px;line-height:1.5}
+
+/* AI finding box */
+.finding-box{background:var(--white);padding:18px;border-radius:16px;border:1px solid var(--pink-200);box-shadow:0 1px 4px rgba(0,0,0,.02)}
+.finding-hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;display:flex;align-items:center;gap:8px;color:var(--pink-600);margin-bottom:14px}
+.finding-text{font-size:13px;color:var(--pink-700);line-height:1.7;font-weight:300}
+
+/* ── FOOTER ── */
+.footer{
+  height:48px;border-top:1px solid var(--pink-200);background:var(--pink-50);
+  display:flex;align-items:center;justify-content:space-between;padding:0 32px;
+  font-size:11px;font-family:var(--font-mono);color:var(--pink-300);
+  text-transform:uppercase;letter-spacing:.15em;flex-shrink:0;margin-top:auto;
+}
+.footer-left{display:flex;gap:24px}
+.footer-right{display:flex;align-items:center;gap:8px}
+.footer-dot{width:6px;height:6px;border-radius:50%;background:var(--pink-500)}
+
+/* Spinner small */
+.btn-run .spin{
+  width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="bg-blob top"></div>
+  <div class="bg-blob bottom"></div>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M12 8v8"/><circle cx="12" cy="17" r="3"/><path d="M9 22h6"/></svg></div>
+      <div class="brand-text">MASTO-NET<span class="brand-sub">AI</span></div>
+    </div>
+    <div class="sidebar-info">
+      <div class="sidebar-info-title">진단 모델</div>
+      <div class="sidebar-info-text">DualROI-DINOv2<br/>Multimodal Fusion</div>
+      <div class="sidebar-info-divider"></div>
+      <div class="sidebar-info-title">입력 데이터</div>
+      <div class="sidebar-info-text">맘모그래피<br/>유방 초음파<br/>초음파 ROI 크롭</div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <main class="main">
+    <header class="header">
+      <div class="header-title">
+        <h1>유방암 AI 정밀 진단 시스템</h1>
+        <div class="status-chip"><span class="status-dot"></span> System Active</div>
+      </div>
+      <div class="header-meta">
+        <span id="model-status-text">MODEL: STANDBY</span>
+        <span>BACKEND: 127.0.0.1:8000</span>
+      </div>
+    </header>
+
+    <div class="content" id="content">
+
+      <!-- ══ STEP: UPLOAD ══ -->
+      <div class="step" id="step-upload">
+        <div class="intake-card">
+          <div class="intake-hd">
+            <div class="intake-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+            <h2>병변 진단 데이터 입력 (Intake)</h2>
+          </div>
+
+          <div class="upload-grid">
+            <div class="upload-card" id="card-mmg">
+              <input type="file" accept="image/*" onchange="handleUpload(this,'mmg')">
+              <div class="upload-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+              <div class="upload-title">Mammography</div>
+              <div class="upload-desc">맘모그래피 이미지</div>
+              <div class="upload-preview" id="preview-mmg" style="display:none">
+                <img id="img-mmg" alt="">
+                <div class="upload-preview-overlay">
+                  <div class="preview-check"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="preview-name" id="name-mmg"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="upload-card" id="card-us">
+              <input type="file" accept="image/*" onchange="handleUpload(this,'us')">
+              <div class="upload-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+              <div class="upload-title">Breast Ultrasound</div>
+              <div class="upload-desc">유방 초음파 이미지</div>
+              <div class="upload-preview" id="preview-us" style="display:none">
+                <img id="img-us" alt="">
+                <div class="upload-preview-overlay">
+                  <div class="preview-check"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="preview-name" id="name-us"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="upload-card" id="card-roi">
+              <input type="file" accept="image/*" onchange="handleUpload(this,'roi')">
+              <div class="upload-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+              <div class="upload-title">Ultrasound ROI</div>
+              <div class="upload-desc">병변 부위 크롭 이미지</div>
+              <div class="upload-preview" id="preview-roi" style="display:none">
+                <img id="img-roi" alt="">
+                <div class="upload-preview-overlay">
+                  <div class="preview-check"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="preview-name" id="name-roi"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="intake-actions">
+            <button class="btn-run" id="run-btn" disabled onclick="runAnalysis()">
+              <span id="run-btn-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+              <span id="run-btn-label">AI 멀티모달 분석 시작</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <div>
+              <div class="feature-title">BI-RADS 기준 분류</div>
+              <div class="feature-text">표준 진단 프로토콜에 따른 자동 매칭</div>
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <div>
+              <div class="feature-title">CAM 영역 시각화</div>
+              <div class="feature-text">이미지 내 주요 특징점 가중치 맵핑 (Saliency Map)</div>
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <div>
+              <div class="feature-title">통합 소견 제안</div>
+              <div class="feature-text">다각도 데이터를 통합한 정밀 위험도 산출</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ STEP: ANALYZING ══ -->
+      <div class="step fade-only analyzing-wrap" id="step-analyzing" style="display:none">
+        <div class="progress-ring-wrap">
+          <svg class="progress-ring" width="220" height="220">
+            <circle class="progress-bg" cx="110" cy="110" r="104"></circle>
+            <circle class="progress-fg" id="progress-circle" cx="110" cy="110" r="104"
+              stroke-dasharray="653" stroke-dashoffset="653"></circle>
+          </svg>
+          <div class="progress-label"><span id="progress-num">0</span><sup>%</sup></div>
+        </div>
+        <div class="analyzing-text">
+          <h2>AI 심층 분석 및 데이터 합성 중</h2>
+          <p>병변 감지를 위해 멀티모달 특징 벡터를 추출하고 있습니다. (DINOv2 Dual-ROI 모델)</p>
+        </div>
+      </div>
+
+      <!-- ══ STEP: RESULT ══ -->
+      <div class="step scaleIn" id="step-result" style="display:none">
+        <div class="result-toolbar">
+          <button class="btn-back" onclick="resetAnalysis()">‹ 초기화하고 새 진단</button>
+        </div>
+
+        <div class="result-card">
+          <div class="result-banner" id="result-banner">
+            <div class="banner-left">
+              <div class="banner-icon" id="banner-icon">!</div>
+              <div>
+                <div class="banner-label">통합 분석 최종 결과</div>
+                <h2 class="banner-title" id="banner-title">—</h2>
+              </div>
+            </div>
+            <div class="banner-right">
+              <div class="banner-label">악성 위험도</div>
+              <p class="banner-conf"><span id="banner-conf">0</span><sup>%</sup></p>
+            </div>
+          </div>
+
+          <div class="result-grid">
+            <!-- LEFT: modality detail -->
+            <div class="result-detail">
+              <div class="detail-hd-row">
+                <div class="detail-hd"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M12 8v8"/><circle cx="12" cy="17" r="3"/><path d="M9 22h6"/></svg> 개별 영상 상세 분석</div>
+                <div class="view-toggle">
+                  <button class="view-btn active" id="vbtn-original" onclick="setViewMode('original')">원본</button>
+                  <button class="view-btn" id="vbtn-heatmap" onclick="setViewMode('heatmap')">병변 위치 표시</button>
+                </div>
+              </div>
+
+              <div class="modality-grid">
+
+                <div class="modality-block">
+                  <div class="mod-badge">
+                    <div class="mod-badge-left">
+                      <span class="mod-badge-name">맘모그래피 (MMG)</span>
+                    </div>
+                  </div>
+                  <div class="img-box-single">
+                    <img id="result-img-mmg" alt="">
+                    <canvas id="cam-mmg"></canvas>
+                  </div>
+                </div>
+
+                <div class="modality-block">
+                  <div class="mod-badge">
+                    <div class="mod-badge-left">
+                      <span class="mod-badge-name">초음파 (US)</span>
+                    </div>
+                  </div>
+                  <div class="img-box-single">
+                    <img id="result-img-us" alt="">
+                    <canvas id="cam-us"></canvas>
+                  </div>
+                </div>
+
+                <div class="modality-block">
+                  <div class="mod-badge">
+                    <div class="mod-badge-left">
+                      <span class="mod-badge-name">ROI 크롭</span>
+                    </div>
+                  </div>
+                  <div class="img-box-single">
+                    <img id="result-img-roi" alt="">
+                    <canvas id="cam-roi"></canvas>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- BI-RADS -->
+              <div style="margin-top:24px">
+                <div class="birads-pill">
+                  <div class="birads-circle">
+                    <span class="num" id="br-num">—</span>
+                    <span class="sub">BIRADS</span>
+                  </div>
+                  <div class="birads-info">
+                    <div class="lbl" id="br-lbl">—</div>
+                    <div class="desc" id="br-desc">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: side panel -->
+            <div class="result-side">
+              <div>
+                <div class="side-section-title">정밀 진단 지표</div>
+                <div class="gauge-chart">
+                  <div class="gauge-bar-wrap">
+                    <span class="gauge-val" id="gauge-val-malig">0%</span>
+                    <div class="gauge-bar malignant" id="gauge-bar-malig" style="height:0%"></div>
+                    <span class="gauge-name">Malignant</span>
+                  </div>
+                  <div class="gauge-bar-wrap">
+                    <span class="gauge-val" id="gauge-val-benign">100%</span>
+                    <div class="gauge-bar benign" id="gauge-bar-benign" style="height:100%"></div>
+                    <span class="gauge-name">Benign</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="finding-box">
+                <div class="finding-hd"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> AI 분석 소견</div>
+                <p class="finding-text" id="finding-text">—</p>
+              </div>
+
+              <div class="finding-box">
+                <div class="finding-hd"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg> 권고사항</div>
+                <p class="finding-text" id="rec-text">—</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="footer">
+      <div class="footer-left">
+        <span>Model: DualROI-DINOv2-MMIBC</span>
+        <span id="footer-time">Inference: —</span>
+      </div>
+      <div class="footer-right">
+        <span class="footer-dot"></span>
+        <span>PACS Secure Link</span>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// 설정
+// ══════════════════════════════════════════════════════
+const API_BASE = 'http://127.0.0.1:8000';
+
+// ══════════════════════════════════════════════════════
+// 상태
+// ══════════════════════════════════════════════════════
+const images = { mmg: null, us: null, roi: null };
+const fileNames = { mmg: null, us: null, roi: null };
+let currentPtId = 'PT-' + Math.random().toString(36).slice(2,6).toUpperCase();
+
+// 모델 상태 확인
+fetch(API_BASE + '/api/health').then(r=>r.json()).then(d=>{
+  document.getElementById('model-status-text').textContent =
+    'MODEL: ' + (d.model_ready ? 'READY' : 'STANDBY (DEMO)');
+}).catch(()=>{
+  document.getElementById('model-status-text').textContent = 'MODEL: OFFLINE';
+});
+
+// ══════════════════════════════════════════════════════
+// 업로드
+// ══════════════════════════════════════════════════════
+function handleUpload(input, key) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    images[key] = e.target.result;
+    fileNames[key] = file.name;
+    document.getElementById('img-' + key).src = e.target.result;
+    document.getElementById('preview-' + key).style.display = 'block';
+    document.getElementById('name-' + key).textContent = file.name;
+    document.getElementById('card-' + key).classList.add('has-file');
+    checkReady();
+  };
+  reader.readAsDataURL(file);
+}
+
+function checkReady() {
+  const ok = images.mmg && images.us && images.roi;
+  document.getElementById('run-btn').disabled = !ok;
+}
+
+// ══════════════════════════════════════════════════════
+// 분석 실행
+// ══════════════════════════════════════════════════════
+let progressTimer = null;
+
+async function runAnalysis() {
+  showStep('analyzing');
+  let progress = 0;
+  document.getElementById('progress-num').textContent = '0';
+  setProgressRing(0);
+
+  progressTimer = setInterval(() => {
+    if (progress >= 90) { clearInterval(progressTimer); return; }
+    progress += 2;
+    document.getElementById('progress-num').textContent = progress;
+    setProgressRing(progress);
+  }, 60);
+
+  const startTime = performance.now();
+
+  try {
+    const res = await fetch(API_BASE + '/api/process_breast', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        mmg: images.mmg.split(',')[1],
+        us:  images.us.split(',')[1],
+        roi: images.roi.split(',')[1],
+        patient_id: currentPtId
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({detail:'서버 오류 ' + res.status}));
+      throw new Error(err.detail || ('서버 오류 ' + res.status));
+    }
+
+    const r = await res.json();
+
+    clearInterval(progressTimer);
+    document.getElementById('progress-num').textContent = '100';
+    setProgressRing(100);
+
+    const elapsed = Math.round(performance.now() - startTime);
+    document.getElementById('footer-time').textContent = 'Inference: ' + elapsed + 'ms';
+
+    await new Promise(res => setTimeout(res, 350));
+
+    renderResult(r);
+    showStep('result');
+
+  } catch (err) {
+    clearInterval(progressTimer);
+    alert('분석 실패: ' + err.message + '\n\n백엔드 서버(uvicorn main:app)가 실행 중인지 확인하세요.');
+    showStep('upload');
+  }
+}
+
+function setProgressRing(pct) {
+  const circumference = 653;
+  const offset = circumference - (circumference * pct) / 100;
+  document.getElementById('progress-circle').style.strokeDashoffset = offset;
+}
+
+function showStep(step) {
+  // 업로드 섹션은 항상 표시
+  document.getElementById('step-upload').style.display = 'block';
+
+  document.getElementById('step-analyzing').style.display = step === 'analyzing' ? 'flex' : 'none';
+  document.getElementById('step-result').style.display    = step === 'result'    ? 'block' : 'none';
+
+  if (step === 'analyzing' || step === 'result') {
+    setTimeout(() => {
+      document.getElementById(step === 'result' ? 'step-result' : 'step-analyzing')
+        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// BI-RADS 메타
+// ══════════════════════════════════════════════════════
+const BIRADS_META = {
+  '0': {lbl:'미완성',    desc:'추가 영상 필요'},
+  '1': {lbl:'정상',      desc:'이상 소견 없음'},
+  '2': {lbl:'양성',      desc:'악성 가능성 없음'},
+  '3': {lbl:'양성 추정', desc:'6개월 단기 추적 권고'},
+  '4': {lbl:'악성 의심', desc:'조직 생검 고려'},
+  '4a':{lbl:'악성 의심(저)',desc:'저위험 소견'},
+  '4b':{lbl:'악성 의심(중)',desc:'중위험 소견'},
+  '4c':{lbl:'악성 의심(고)',desc:'고위험 소견'},
+  '5': {lbl:'악성 강력 의심',desc:'즉각 생검 필요'},
+  '6': {lbl:'조직학적 확인', desc:'생검 확인된 악성'},
+};
+
+let lastResult = null;
+
+// ══════════════════════════════════════════════════════
+// 결과 렌더링
+// ══════════════════════════════════════════════════════
+function renderResult(r) {
+  lastResult = r;
+  const pct = Math.min(100, Math.max(0, r.malignancy_pct || 0));
+  const isMalignant = pct >= 50;
+
+  // Banner
+  const banner = document.getElementById('result-banner');
+  banner.className = 'result-banner ' + (isMalignant ? 'malignant' : 'benign');
+
+  const icon = document.getElementById('banner-icon');
+  icon.className = 'banner-icon ' + (isMalignant ? 'malignant' : 'benign');
+  icon.innerHTML = isMalignant
+    ? '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+    : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  const title = document.getElementById('banner-title');
+  title.className = 'banner-title ' + (isMalignant ? 'malignant' : 'benign');
+  title.textContent = isMalignant ? '악성 (Malignant) 의심' : '양성 (Normal / Benign)';
+
+  document.getElementById('banner-conf').textContent = pct;
+
+  // BI-RADS
+  const m = BIRADS_META[String(r.birads).toLowerCase()] || BIRADS_META['4'];
+  document.getElementById('br-num').textContent  = r.birads;
+  document.getElementById('br-lbl').textContent  = m.lbl;
+  document.getElementById('br-desc').textContent = m.desc;
+
+  // Gauge bars
+  document.getElementById('gauge-bar-malig').style.height  = pct + '%';
+  document.getElementById('gauge-bar-benign').style.height = (100 - pct) + '%';
+  document.getElementById('gauge-val-malig').textContent  = pct + '%';
+  document.getElementById('gauge-val-benign').textContent = (100 - pct) + '%';
+
+  // Findings
+  let findingTxt = r.finding || '';
+  if (r.morphology && r.morphology !== 'null') findingTxt += '\n\n형태: ' + r.morphology;
+  if (r.margin && r.margin !== 'null')         findingTxt += ' / 경계: ' + r.margin;
+  if (r.size_estimate && r.size_estimate !== 'null') findingTxt += '\n크기 추정: ' + r.size_estimate;
+  document.getElementById('finding-text').textContent = findingTxt;
+
+  let recTxt = r.recommendation || '';
+  if (r.note && r.note !== 'null') recTxt += '\n\n참고: ' + r.note;
+  document.getElementById('rec-text').textContent = recTxt;
+
+  // Images (Source)
+  ['mmg','us','roi'].forEach(k => {
+    document.getElementById('result-img-' + k).src = images[k];
+  });
+
+  // 병변 윤곽선
+  setTimeout(() => {
+    drawContour('mmg', r.gradcam_mmg, pct/100);
+    drawContour('us',  r.gradcam_us,  pct/100);
+    drawContour('roi', r.gradcam_roi, pct/100);
+  }, 50);
+
+  // 뷰 모드 초기화 (원본부터 보여주기)
+  setViewMode('original');
+}
+
+// ══════════════════════════════════════════════════════
+// 뷰 모드 전환 (원본 / Grad-CAM / 오버레이) — 모든 모달리티 동시 적용
+// ══════════════════════════════════════════════════════
+function setViewMode(mode) {
+  ['vbtn-original','vbtn-heatmap'].forEach(id =>
+    document.getElementById(id).classList.remove('active')
+  );
+  document.getElementById('vbtn-' + mode).classList.add('active');
+
+  ['mmg','us','roi'].forEach(k => {
+    const box = document.getElementById('result-img-' + k).parentElement;
+    box.classList.remove('show-heatmap','show-overlay');
+    if (mode === 'heatmap') box.classList.add('show-heatmap');
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// 병변 윤곽선 (실제 saliency 기반 contour)
+// points: [x1,y1, x2,y2, ...] — 0~1 정규화 좌표
+// ══════════════════════════════════════════════════════
+function drawContour(key, points, riskScore) {
+  const canvas = document.getElementById('cam-' + key);
+  const W = 400, H = 400; // 내부 해상도 (정사각형 기준 좌표계)
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const color = riskScore >= 0.6 ? '#ef4444' : riskScore >= 0.3 ? '#f59e0b' : '#10b981';
+
+  let pts = [];
+  if (points && points.length >= 6) {
+    for (let i = 0; i < points.length; i += 2) {
+      pts.push([points[i] * W, points[i+1] * H]);
+    }
+  } else {
+    // fallback: 윤곽선을 못 찾았을 때 — 중앙 근처에 부드러운 타원형 그리기
+    const cx = W * (0.45 + (Math.random()-0.5)*0.1);
+    const cy = H * (0.45 + (Math.random()-0.5)*0.1);
+    const rx = W * (0.10 + riskScore*0.10);
+    const ry = H * (0.08 + riskScore*0.10);
+    for (let a = 0; a < Math.PI*2; a += 0.35) {
+      pts.push([cx + Math.cos(a)*rx, cy + Math.sin(a)*ry]);
+    }
+  }
+
+  // 윤곽선 (closed path)
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+  ctx.stroke();
+
+  // 살짝 채우기 (식별 용이)
+  ctx.fillStyle = color + '22';
+  ctx.fill();
+
+  // 중심점 + 십자선
+  let cx = 0, cy = 0;
+  pts.forEach(p => { cx += p[0]; cy += p[1]; });
+  cx /= pts.length; cy /= pts.length;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  ctx.moveTo(cx-14, cy); ctx.lineTo(cx+14, cy);
+  ctx.moveTo(cx, cy-14); ctx.lineTo(cx, cy+14);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 라벨
+  ctx.fillStyle = color;
+  ctx.font = 'bold 16px Pretendard, sans-serif';
+  const label = riskScore >= 0.6 ? 'HIGH' : riskScore >= 0.3 ? 'MID' : 'LOW';
+  let minY = Math.min(...pts.map(p=>p[1]));
+  let minX = Math.min(...pts.map(p=>p[0]));
+  ctx.fillText(label, minX, minY > 24 ? minY - 8 : minY + 24);
+}
+
+// ══════════════════════════════════════════════════════
+// 초기화
+// ══════════════════════════════════════════════════════
+function resetAnalysis() {
+  ['mmg','us','roi'].forEach(k => {
+    images[k] = null;
+    fileNames[k] = null;
+    document.getElementById('preview-' + k).style.display = 'none';
+    document.getElementById('card-' + k).classList.remove('has-file');
+    document.querySelector('#card-' + k + ' input[type=file]').value = '';
+  });
+  checkReady();
+  lastResult = null;
+  currentPtId = 'PT-' + Math.random().toString(36).slice(2,6).toUpperCase();
+  document.getElementById('step-analyzing').style.display = 'none';
+  document.getElementById('step-result').style.display = 'none';
+  document.getElementById('step-upload').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>

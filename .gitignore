@@ -1,0 +1,45 @@
+# === Python ===
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# === Environment ===
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# === Model weights ===
+# 이 저장소에는 어떤 .pth/.pt/.ckpt 도 포함하지 않습니다 (README "모델 weight 준비 방법" 참고).
+*.pth
+*.pt
+*.ckpt
+saved_models/*
+!saved_models/.gitkeep
+
+# === Datasets / medical data ===
+# VinDr-Mammo, BUSI, DICOM 등 원본 데이터는 재배포하지 않습니다 (README "데이터 준비 방법" 참고).
+data/*
+!data/.gitkeep
+dataset/
+datasets/
+*.dcm
+
+# === Archives (원본 프로젝트의 kk.zip, tar.gz 등 대용량 백업 압축본 제외) ===
+*.zip
+*.tar
+*.tar.gz
+
+# === Outputs / logs ===
+outputs/*
+!outputs/.gitkeep
+runs/
+logs/
+*.log
+
+# === IDE / OS ===
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
