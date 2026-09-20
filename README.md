@@ -110,7 +110,11 @@ pinksignal-breast-cancer-multimodal/
 ├── docs/
 │   └── usecase_sequence_diagram.uml   # Use Case / Sequence 다이어그램 (StarUML)
 ├── data/                                # (비어 있음) 데이터셋을 직접 준비해서 배치하는 위치
-└── saved_models/                       # (비어 있음) 학습된 .pth 가중치를 배치하는 위치
+│   └── .gitkeep
+├── saved_models/                       # (비어 있음) 학습된 .pth 가중치를 배치하는 위치
+│   └── .gitkeep
+└── outputs/                             # (비어 있음) 학습 로그·TensorBoard·평가 결과가 저장되는 위치
+    └── .gitkeep
 ```
 
 > **구조에 대한 설명**: `src/training/dinov2/` 하위 코드는 `from src.training.dinov2.multimodal_model.multimodal_architecture import ...` 형태의 절대 경로 import를 사용합니다. 이 import 관계를 깨뜨리지 않기 위해 원본의 폴더 구조(`unimodal_model/`, `multimodal_model/`, `dual_roi_fusion/`, `recall_optimization/`, `roi_fusion/`, `baselines/`)를 그대로 유지했습니다. 흔한 `src/` 최상위에 모델 폴더를 바로 두는 구조 대신 `src/training/dinov2/...` 3단계 구조를 쓰는 것도 같은 이유입니다.
@@ -140,12 +144,34 @@ DINOv2 백본은 최초 실행 시 `torch.hub`를 통해 인터넷에서 자동�
 ```
 data/
 ├── ultrasound/images/...
+├── ultrasound/masks/...          # BUSI 마스크 (4단계 ROI CSV 생성 시 필요)
+├── ultrasound_roi/images/...     # ROI crop 결과가 저장되는 위치 (4단계에서 자동 생성)
 ├── mammo/...
 │   └── vindr_mammo_metadata.csv
-└── multimodal_pairs.csv        # 맘모-초음파 synthetic pairing 결과 CSV (아래 참고)
+└── multimodal_pairs*.csv         # 아래 "데이터 준비 단계" 참고
 ```
 
-`multimodal_pairs.csv`(및 Dual-ROI용 `multimodal_pairs_roi_margin030_no_mammo_leak.csv`)는 `src/training/dinov2/multimodal_model/pairing_data.py`가 라벨 기준으로 맘모그래피-초음파 쌍을 생성(synthetic pairing)한 결과물이며, `MultimodalDataset`(`multimodal_dataset.py`)이 학습 시 이 CSV를 읽어 이미지 쌍을 로드합니다. 즉 원본 이미지 데이터를 준비한 뒤, 이 스크립트로 CSV를 먼저 생성해야 멀티모달 학습이 가능합니다.
+### 데이터 준비 단계 (실제 코드 기준)
+
+1. **VinDr-Mammo / BUSI 준비**: 위 표의 데이터셋을 위 구조에 맞춰 `data/`에 배치합니다.
+2. **기본 multimodal pairing CSV 생성**: `src/training/dinov2/multimodal_model/pairing_data.py`가 라벨 기준으로 맘모그래피-초음파 쌍을 생성(synthetic pairing)합니다.
+   ```bash
+   python src/training/dinov2/multimodal_model/pairing_data.py \
+     --mammo_dir data/mammo --us_dir data/ultrasound/images \
+     --output_csv data/multimodal_pairs.csv
+   ```
+   `MultimodalDataset`(`multimodal_dataset.py`)이 학습 시 이 CSV를 읽어 이미지 쌍을 로드하며, 2-Input MMIBC 학습(`multimodal_model/config.yaml`)에 사용됩니다.
+3. **[참고] No-Mammo-Leak CSV**: `config_no_mammo_leak.yaml`과 Dual-ROI/`recall_optimization`/`roi_fusion` 계열 스크립트들은 환자 단위 데이터 누수를 제거한 `data/multimodal_pairs_no_mammo_leak.csv`를 기본 입력으로 사용합니다. **이 필터링 CSV를 생성하는 스크립트는 이 저장소에 포함되어 있지 않습니다.** 2번에서 만든 `multimodal_pairs.csv`와 같은 컬럼 구조로, 환자 단위 중복 페어를 직접 제거해 준비하거나, 아래 학습 명령의 `--config`/CSV 경로 인자를 보유한 파일 경로로 바꿔 지정해야 합니다.
+4. **ROI pairing CSV 생성** (Dual-ROI/Triple-Input 학습에만 필요): `src/training/dinov2/roi_fusion/create_roi_multimodal_csv.py`가 3번의 CSV와 BUSI 마스크(`--masks_root`)를 이용해 병변 ROI crop 이미지(`--roi_root`)와 ROI 경로 컬럼이 추가된 새 CSV(`--output_csv`)를 생성합니다.
+   ```bash
+   python src/training/dinov2/roi_fusion/create_roi_multimodal_csv.py \
+     --input_csv data/multimodal_pairs_no_mammo_leak.csv \
+     --output_csv data/multimodal_pairs_roi_margin030_no_mammo_leak.csv \
+     --margin 0.30
+   ```
+   Dual-ROI 학습 스크립트들의 `--roi_csv` 기본값이 `data/multimodal_pairs_roi_margin030_no_mammo_leak.csv`이므로(스크립트 자체의 `--margin` 기본값은 0.15이며, 파일명의 "margin030"은 0.30으로 생성했음을 암시합니다), 이 파일명에 맞추려면 위처럼 `--output_csv`/`--margin`을 명시적으로 지정하거나, 학습 스크립트 실행 시 `--roi_csv`를 실제로 생성한 경로로 바꿔 지정하면 됩니다.
+
+이후 5~7단계(아래 "학습 방법": 유니모달 → 2-Input MMIBC → Dual-ROI/Triple-Input)로 이어집니다.
 
 ## 모델 weight 준비 방법
 
@@ -162,17 +188,17 @@ data/
 
 ## 학습 방법
 
-모든 학습/평가 스크립트의 `argparse` 기본값은 **저장소 루트에서 실행한다는 전제로 상대경로**(`data/...`, `saved_models/...`, `outputs/...`, `src/training/dinov2/...`)로 맞춰져 있습니다. 즉 `data/`, `saved_models/`를 준비한 뒤 저장소 루트에서 그대로 실행하면 되며, 다른 위치를 쓰고 싶을 때만 아래처럼 인자를 직접 지정하면 됩니다.
+먼저 위 "데이터 준비 단계"(1~4번, VinDr-Mammo/BUSI 준비 → 기본 pairing CSV → No-Mammo-Leak CSV → ROI pairing CSV)를 필요한 만큼 완료해야 합니다. 모든 학습/평가 스크립트의 `argparse` 기본값은 **저장소 루트에서 실행한다는 전제로 상대경로**(`data/...`, `saved_models/...`, `outputs/...`, `src/training/dinov2/...`)로 맞춰져 있습니다. 즉 `data/`, `saved_models/`를 준비한 뒤 저장소 루트에서 그대로 실행하면 되며, 다른 위치를 쓰고 싶을 때만 아래처럼 인자를 직접 지정하면 됩니다.
 
 ```bash
-# 1) 유니모달 인코더 학습 (초음파 / 맘모그래피 각각)
+# 5) 유니모달 인코더 학습 (초음파 / 맘모그래피 각각)
 python src/training/dinov2/unimodal_model/ultrasound_train.py --config src/training/dinov2/unimodal_model/config.yaml
 python src/training/dinov2/unimodal_model/mammo_train.py --config src/training/dinov2/unimodal_model/config.yaml
 
-# 2) 2-Input MMIBC 멀티모달 학습 (위에서 학습한 유니모달 가중치 필요)
+# 6) 2-Input MMIBC 멀티모달 학습 (위에서 학습한 유니모달 가중치 필요)
 python src/training/dinov2/multimodal_model/multimodal_train.py --config src/training/dinov2/multimodal_model/config.yaml
 
-# 3) Triple-Input(Dual-ROI) 학습 — 웹 데모가 사용하는 최종 구조
+# 7) Triple-Input(Dual-ROI) 학습 — 웹 데모가 사용하는 최종 구조
 # (--root, --config, --roi_csv 등은 모두 기본값이 저장소 상대경로이므로, 필요할 때만 재지정)
 python src/training/dinov2/dual_roi_fusion/train_multimodal_dual_roi.py \
   --root . \
@@ -210,7 +236,7 @@ Triple-Input(Dual-ROI) 모델의 Validation set 기준 실험 결과입니다(�
 - 위 실험 결과는 Validation set 기준이며, 독립적인 test set 성능은 별도로 확인되지 않았습니다.
 - 학습에 사용된 맘모그래피-초음파 쌍은 동일 환자의 실제 페어가 아니라 **라벨 기준 synthetic pairing**으로 구성되어 있어, 실제 임상 페어 데이터에서의 성능은 다를 수 있습니다.
 - 데이터 불균형(악성 비율이 낮음) 문제로 Malignant Recall이 다른 지표 대비 상대적으로 낮으며, 이를 개선하기 위한 Focal Loss / Class-Balanced Loss 실험이 진행 중입니다(`recall_optimization/`).
-- 일부 학습 스크립트의 argparse 기본 경로가 아직 정리되지 않았습니다(위 "학습 방법" 참고).
+- 공개용 Repository에서는 기존 개발환경의 개인 PC 절대경로를 제거하고, 학습·평가 스크립트와 설정 파일의 경로를 Repository 상대경로 기반으로 정리했습니다(위 "학습 방법" 참고).
 - 웹 데모는 시연용 프로토타입이며, 의료기기 인허가나 임상 검증을 거치지 않았습니다.
 
 ## 데이터셋 및 외부 프로젝트 고지
