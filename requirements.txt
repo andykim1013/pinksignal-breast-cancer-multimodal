@@ -3,13 +3,13 @@
 # Sources actually checked (no versions were invented):
 #   - fastapi / uvicorn / torch / torchvision / pillow / numpy / python-multipart / pydantic
 #     versions are copied as-is from the team's own `kk/requirements.txt`
-#     (found inside 모델구현 파일/kk.zip).
+#     (found inside the original web-demo archive, kk.zip).
 #   - All other packages below were found via `import`/`from` statements in the
 #     copied training/evaluation/XAI code, but no requirements/environment file
 #     in the original project pins their versions, so they are listed WITHOUT a
 #     version pin. Please verify a working version set yourself before relying
 #     on this file (Python / CUDA version were also not confirmed anywhere in
-#     the original project — see README "확인 필요" note).
+#     the original project - see the "needs confirmation" note in README).
 
 # --- Web demo (FastAPI backend, app/main.py) ---
 fastapi>=0.110.0

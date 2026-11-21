@@ -2,7 +2,7 @@
 #
 # Variant of config.yaml using a pairing CSV built to avoid patient-level
 # leakage between the mammography and ultrasound pairs ("No-Mammo-Leak"
-# clean baseline, see 단계별 모델 개선.txt / 초록 번역본.txt).
+# clean baseline, see the team's model-improvement notes and abstract).
 #
 # NOTE (public repo): all paths below are REPO-ROOT-RELATIVE.
 # The original team config pointed to a personal machine path

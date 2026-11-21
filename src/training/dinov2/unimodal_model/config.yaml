@@ -7,7 +7,7 @@
 #   python src/training/dinov2/unimodal_model/mammo_train.py --config src/training/dinov2/unimodal_model/config.yaml
 #
 # Place your prepared dataset under `data/` and trained weights will be
-# written under `saved_models/` (see README.md "데이터 준비 방법" / "모델 weight 준비 방법").
+# written under `saved_models/` (see the data and model-weight preparation sections in README.md).
 # The original team config pointed to a personal machine path
 # (C:/Users/<username>/Desktop/MMIBC-main/...); that has been removed here.
 
